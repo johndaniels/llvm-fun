@@ -1,6 +1,6 @@
-lang: lang.cpp parser.cpp parser.hpp
-	g++ lang.cpp parser.cpp -o lang -std=c++11 -I/usr/lib/llvm-3.1/include  -DNDEBUG -D_GNU_SOURCE -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS \
-	-g -O2 -fomit-frame-pointer -fvisibility-inlines-hidden -fno-exceptions -fPIC -Woverloaded-virtual -Wcast-qual \
+lang: lang.cpp parsersupport.cpp AstCompiler.cpp parser.o lexer.o ast.h
+	g++ lang.cpp AstCompiler.cpp parsersupport.cpp parser.o lexer.o -o lang -Wall -Werror -Wextra -std=c++11 -I/usr/lib/llvm-3.1/include  -DNDEBUG -D_GNU_SOURCE -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS \
+	-g -fomit-frame-pointer -fvisibility-inlines-hidden -fno-exceptions -fPIC -Woverloaded-virtual -Wcast-qual \
 	-L/usr/lib/llvm-3.1/lib  -lpthread -lffi -ldl -lm \
 	-lLLVMAsmParser -lLLVMInstrumentation -lLLVMLinker -lLLVMArchive -lLLVMBitReader -lLLVMDebugInfo -lLLVMJIT -lLLVMipo -lLLVMVectorize -lLLVMBitWriter \
 	-lLLVMTableGen -lLLVMHexagonCodeGen -lLLVMHexagonAsmPrinter -lLLVMHexagonDesc -lLLVMHexagonInfo -lLLVMPTXCodeGen -lLLVMPTXDesc \
@@ -15,3 +15,15 @@ lang: lang.cpp parser.cpp parser.hpp
 	-lLLVMCodeGen -lLLVMScalarOpts -lLLVMInstCombine -lLLVMTransformUtils -lLLVMipa -lLLVMAnalysis -lLLVMMCJIT \
 	-lLLVMRuntimeDyld -lLLVMExecutionEngine \
 	-lLLVMTarget -lLLVMMC -lLLVMObject -lLLVMCore -lLLVMSupport -lpthread -ldl
+
+lexer.o: lexer.cpp ast.h
+	g++ -c lexer.cpp
+
+parser.o: parser.cpp ast.h
+	g++ -c parser.cpp
+
+lexer.cpp: lexer.l
+	flex -olexer.cpp lexer.l
+
+parser.cpp: parser.y
+	yacc parser.y
