@@ -17,6 +17,7 @@ namespace lang {
 		llvm::Value* expression(Expression *expr);
 		void compile(CompilationUnit *compilation_unit); 
 		void assignment(Assignment *assignment);
+		void statement(Statement *statement);
 	};
 }
 

@@ -12,6 +12,9 @@
 #include <fstream>
 #include <unistd.h>
 #include <sys/wait.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include "llvm/Support/raw_ostream.h"
 
 using namespace std;
@@ -24,17 +27,103 @@ namespace lang {
 	CompilationUnit* parsed_compilation_unit;
 }
 
+static void ff_pipe(int fd[2], const char* fail_message) {
+	if (pipe(fd) < 0) {
+		perror(fail_message);
+		exit(1);
+	}
+}
+
+static pid_t ff_fork(const char* fail_message) {
+	pid_t ret = fork();
+	if (ret < 0) {
+		perror(fail_message);
+		exit(1);
+	}
+	return ret;
+}
+
+static void ff_dup2(int first, int second, const char* fail_message) {
+	if (dup2(first, second) < 0) {
+		perror(fail_message);
+		exit(1);
+	}
+}
+
+static void ff_close(int fd, const char* fail_message) {
+	if (close(fd) < 0) {
+		perror(fail_message);
+		exit(1);
+	}
+}
+
+static pid_t ff_waitpid(pid_t pid, const char* fail_message) {
+	int status;
+	pid_t ret_pid = waitpid(pid, &status, 0);
+	if (ret_pid < 0 && WIFEXITED(status) && WEXITSTATUS(status)) {
+		perror(fail_message);
+		exit(1);
+	}
+	return ret_pid;
+}
+
+void compile_object_file(llvm::Module *module) {
+	int aspipe[2];
+	ff_pipe(aspipe, "open aspipe");
+
+	int llcpipe[2];
+	ff_pipe(llcpipe, "open llcpipe");
+
+	pid_t llc = ff_fork("llc fork");
+
+	if (llc == 0) {
+		ff_close(llcpipe[1], "close llcpipe[1] in llc");
+		ff_close(aspipe[0], "close aspipe[1] in llc");
+
+		ff_dup2(llcpipe[0], STDIN_FILENO, "dup llcpipe[0] to STDIN in llc");
+		ff_dup2(aspipe[1], STDOUT_FILENO, "dup aspipe[1] to STDOUT in llc");
+
+		execlp("llc", "llc", NULL);
+		perror("Exec LLC");
+		exit(1);
+	}
+	ff_close(llcpipe[0], "close llcpipe[0]");
+
+	pid_t as = ff_fork("as fork");
+	ff_close(aspipe[1], "close aspipe[1]");
+
+	if (as == 0) {
+		ff_close(llcpipe[1], "close llcpipe[1] in as process");
+		
+		ff_dup2(aspipe[0], STDIN_FILENO, "dup aspipe[0] to STDIN in as");
+		execlp("as", "as", "-o", "test.o", NULL);
+		perror("exec as");
+		exit(1);
+	}
+
+	ff_close(aspipe[0], "close aspipe[0]");
+
+	raw_fd_ostream outfile(llcpipe[1], true);
+	outfile << *module;
+	outfile.close();
+
+	ff_waitpid(llc, "wait for llc");
+	ff_waitpid(as, "wait for as");
+}
+
+void compile_exe_file() {
+	pid_t gcc = ff_fork("fork compiling exe");
+	if (gcc == 0) {
+		execlp("gcc", "gcc", "-o", "output", "test.o", "runtime.c", NULL);
+		perror("failed exec gcc");
+		exit(1);
+	}
+	ff_waitpid(gcc, "wait for gcc");
+}
+
 int main()
 {
 	CompilationUnit *ast;
-	/*vector<Assignment*> statements;
-	for (int j=0; j < 10; j++) {
-		statements.push_back(new Assignment("test", 4));
-	}
-	for (size_t j=0; j < statements.size(); j++) {
-		delete statements[j];
-	}*/
-	
 
 	yyin = fopen("test.lang", "r");
 	if (!yyin) {
@@ -86,57 +175,9 @@ int main()
 	builder.CreateCall(putsFunc, helloWorld);
 	builder.CreateRetVoid();
 
-	int aspipe[2];
-	pipe(aspipe);
-
-	int llcpipe[2];
-	pipe(llcpipe);
-	pid_t llc = fork();
-	if (llc == 0) {
-		close(llcpipe[1]);
-
-		dup2(llcpipe[0], STDIN_FILENO);
-		dup2(aspipe[1], STDOUT_FILENO);
-
-		//close(aspipe[0]);
-		//write(STDOUT_FILENO, "asdf", 4);
-
-		execlp("llc", "llc", NULL);
-		perror(NULL);
-		exit(1);
-	}
-	close(llcpipe[0]);
-	
-
-	pid_t as = fork();
-	if (as == 0) {
-		close(llcpipe[0]);
-		close(llcpipe[1]);
-		close(aspipe[1]);
-		dup2(aspipe[0], STDIN_FILENO);
-		execlp("as", "as", "-o", "test.o", NULL);
-		perror(NULL);
-		exit(0);
-	}
-
-	close(aspipe[1]);
-	close(aspipe[0]);
-
-	raw_fd_ostream outfile(llcpipe[1], true);
-	//raw_fd_ostream outfile(STDOUT_FILENO, false);
-	outfile << *module;
-	outfile.close();
-
-	int status;
-	close(llcpipe[1]);
-	waitpid(llc, &status, 0);
-
-	/*char temp[1000];
-	while (1) {
-		memset(temp, 0, sizeof(temp));
-		read(aspipe[0], temp, 100);
-		cout << temp;
-	}*/
+	compile_object_file(module);
+	compile_exe_file();
 
 	delete ast;
+	return 0;
 }

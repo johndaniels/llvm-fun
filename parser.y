@@ -18,7 +18,7 @@ void yyerror (char const *s);
 %union {
     int num;
     char* id;
-    lang::Assignment* assignment;
+    lang::Statement* statement;
     lang::Expression* expression;
     lang::CompilationUnit* unit;
 }
@@ -32,8 +32,16 @@ void yyerror (char const *s);
 %token <num> TOKEN_NUMBER
 %token TOKEN_ASSIGN
 %token TOKEN_UNKNOWN
+%token TOKEN_FUNC;
+%token TOKEN_CLASS;
+%token TOKEN_LPAREN;
+%token TOKEN_RPAREN;
+%token TOKEN_LCURLY;
+%token TOKEN_RCURLY;
  
-%type <assignment> assignment
+%type <statement> assignment
+%type <statement> class
+%type <statement> statement
 %type <expression> expression
 %type <unit> program
  
@@ -42,9 +50,17 @@ void yyerror (char const *s);
 compilation_unit: program { lang::parsed_compilation_unit = $1; };
 
 program
-	: assignment program { $$ = $2; $$->statements.push_front($1); }
-	| assignment { $$ = new CompilationUnit(); $$->statements.push_front($1);}
+	: program statement{ $$ = $1; $$->statements.push_back($2); }
+	| statement { $$ = new CompilationUnit(); $$->statements.push_back($1);}
 	;
+
+statement
+	: class
+	| assignment
+	;
+
+class
+	: TOKEN_CLASS TOKEN_IDENTIFIER TOKEN_LPAREN TOKEN_RPAREN TOKEN_LCURLY TOKEN_RCURLY { $$ = new ClassDefinition($2); free($2);}
 
 assignment
     : TOKEN_IDENTIFIER TOKEN_EQUALS expression TOKEN_SEMICOLON { $$ = new Assignment($1, $3); free($1);}

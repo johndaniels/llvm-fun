@@ -12,6 +12,12 @@ letter        [a-zA-Z]
 "="                  { return TOKEN_EQUALS;        }
 ";"	                 { return TOKEN_SEMICOLON; }
 "+"	                 { return TOKEN_PLUS; }
+"func"				 { return TOKEN_FUNC; }
+"class"				 { return TOKEN_CLASS; }
+"("					 { return TOKEN_LPAREN; }
+")"					 { return TOKEN_RPAREN; }
+"{"				 	 { return TOKEN_LCURLY; }
+"}"				 	 { return TOKEN_RCURLY; }
 {letter}({letter}|{digit})* {
                        yylval.id = strdup(yytext);
                        return TOKEN_IDENTIFIER;      }

@@ -11,13 +11,19 @@ namespace lang {
 	enum AstType {
 		LITERAL_EXPRESSION,
 		BINARY_EXPRESSION,
-		ID_EXPRESSION
+		ID_EXPRESSION,
+		CLASS_DEFINITION,
+		ASSIGNMENT
 	};
 
-	class Expression {
+	class AstNode {
 	public:
-		virtual ~Expression() {};
+		virtual ~AstNode() {};
 		virtual AstType type() = 0;
+	};
+
+	class Expression : public AstNode {
+
 	};
 
 	class LiteralExpression: public Expression {
@@ -56,14 +62,35 @@ namespace lang {
 		virtual AstType type() {
 			return ID_EXPRESSION;
 		}
+	};	
+
+	class Statement : public AstNode {
+
 	};
 
-	class Assignment {
+	class ClassDefinition : public Statement {
+	public:
+		std::string id;
+
+		ClassDefinition(const char *id) : id(id) {
+
+		}
+
+		virtual AstType type() {
+			return CLASS_DEFINITION;
+		}
+	};
+
+	class Assignment : public Statement {
 	public:
 		Assignment(const char *id, Expression* value) : id(id), value(value) {
 		}
 		std::string id;
 		Expression* value;
+
+		virtual AstType type() {
+			return ASSIGNMENT;
+		}
 
 		virtual ~Assignment() {
 			delete value;
@@ -72,7 +99,7 @@ namespace lang {
 
 	class CompilationUnit {
 	public:
-		std::deque<Assignment*> statements;
+		std::vector<Statement*> statements;
 
 		CompilationUnit() {
 		}

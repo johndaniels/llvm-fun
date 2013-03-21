@@ -30,7 +30,15 @@ namespace lang {
 
 	void AstCompiler::compile(CompilationUnit *compilation_unit) {
 		for (size_t i=0; i<compilation_unit->statements.size(); i++) {
-			assignment(compilation_unit->statements[i]);
+			statement(compilation_unit->statements[i]);
+		}
+	}
+
+	void AstCompiler::statement(Statement *statement) {
+		if (statement->type() == CLASS_DEFINITION) {
+			cout << "CLASS" << ((Assignment*)statement)->id << endl;
+		} else if (statement->type() == ASSIGNMENT) {
+			assignment((Assignment*)statement);
 		}
 	}
 
