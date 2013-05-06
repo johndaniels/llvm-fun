@@ -6,19 +6,13 @@
 typedef struct {
 	uint32_t size;
 	uint32_t reference_len;
+	uint16_t refcount;
+	uint32_t gc_version;
 } ObjectHeader;
 
 #define LANG_SYSTEM_LOCK 1
 
-typedef struct {
-	pthread_mutex_t mutex;
-	uint16_t refcount;
-	uint16_t flags;
-	uint32_t location;
-} ObjectEntry;
-
-static ObjectEntry* object_data;
-static size_t object_data_len;
+static volatile uint32_t gc_version;
 
 static unsigned char* object_heap;
 static size_t object_heap_len;
@@ -29,12 +23,8 @@ void lang_alloc_object(size_t references, size_t size) {
 }
 
 void lang_initialize() {
-	object_data = malloc(sizeof(ObjectEntry) * 1024);
-	if (!object_data) {
-		exit(1);
-	}
 	object_heap = malloc(10000);
-	if (!object_data) {
+	if (!object_heap) {
 		exit(1);
 	}
 }

@@ -3,7 +3,7 @@
 #include "llvm/Module.h"
 #include "llvm/Function.h"
 #include "llvm/BasicBlock.h"
-#include "llvm/Support/IRBuilder.h"
+#include "llvm/IRBuilder.h"
 #include "ast.h"
 #include "AstCompiler.h"
 #include <vector>

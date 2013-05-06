@@ -2,7 +2,7 @@
 #ifndef AST_COMPILER_H_
 #define AST_COMPILER_H_
 
-#include "llvm/Support/IRBuilder.h"
+#include "llvm/IRBuilder.h"
 #include "ast.h"
 
 #include <map>

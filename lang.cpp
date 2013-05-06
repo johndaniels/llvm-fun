@@ -3,7 +3,7 @@
 #include "llvm/Module.h"
 #include "llvm/Function.h"
 #include "llvm/BasicBlock.h"
-#include "llvm/Support/IRBuilder.h"
+#include "llvm/IRBuilder.h"
 #include "ast.h"
 #include "AstCompiler.h"
 #include <vector>
@@ -27,6 +27,8 @@ namespace lang {
 	CompilationUnit* parsed_compilation_unit;
 }
 
+
+//Following are functions which will fail fast and print an error.
 static void ff_pipe(int fd[2], const char* fail_message) {
 	if (pipe(fd) < 0) {
 		perror(fail_message);
@@ -114,11 +116,11 @@ void compile_object_file(llvm::Module *module) {
 void compile_exe_file() {
 	pid_t gcc = ff_fork("fork compiling exe");
 	if (gcc == 0) {
-		execlp("gcc", "gcc", "-o", "output", "test.o", "runtime.c", NULL);
-		perror("failed exec gcc");
+		execlp("clang", "clang", "-o", "output", "test.o", "runtime.c", NULL);
+		perror("failed exec clang");
 		exit(1);
 	}
-	ff_waitpid(gcc, "wait for gcc");
+	ff_waitpid(gcc, "wait for clang");
 }
 
 int main()
